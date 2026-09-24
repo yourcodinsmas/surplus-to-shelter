@@ -49,16 +49,16 @@ def run_tests():
         quantity=15.0,
         hours_until_expiry=2.0,
         safety_score=0.85,  # Unsafe! Above 0.7
-        latitude=37.7749,
-        longitude=-122.4194,
+        latitude=26.9124,
+        longitude=75.7873,
     )
 
     shelter = FakeShelter(
         name="Community Pantry",
         capacity=100.0,
         current_stock=20.0,
-        latitude=37.7750,
-        longitude=-122.4190,
+        latitude=26.9120,
+        longitude=75.7870,
     )
 
     result = find_and_create_match(unsafe_donation, [shelter])
@@ -70,9 +70,9 @@ def run_tests():
     print("==================================================")
     print("TEST 2: 3 FAKE SHELTERS — NEAREST WITH SPACE WINS")
     print("==================================================")
-    # Donor location: Downtown San Francisco (37.7749, -122.4194)
-    donor_lat = 37.7749
-    donor_lon = -122.4194
+    # Donor location: Jaipur Center / MI Road (26.9124, 75.7873)
+    donor_lat = 26.9124
+    donor_lon = 75.7873
 
     safe_donation = FakeDonation(
         food_name="Fresh Pasta & Baked Bread",
@@ -89,26 +89,26 @@ def run_tests():
         name="Shelter A (Nearest, but FULL)",
         capacity=50.0,
         current_stock=50.0,    # Space left = 0 kg!
-        latitude=37.7800,
-        longitude=-122.4150,
+        latitude=26.9180,
+        longitude=75.7920,
     )
 
-    # 2. Shelter B: Close (~2.5 km) and HAS SPACE (80 kg available space)
+    # 2. Shelter B: Close (~2.0 km) and HAS SPACE (80 kg available space)
     shelter_b = FakeShelter(
         name="Shelter B (Nearby & Has Space)",
         capacity=100.0,
         current_stock=20.0,    # Space left = 80 kg!
-        latitude=37.7600,
-        longitude=-122.4100,
+        latitude=26.9020,
+        longitude=75.8010,
     )
 
-    # 3. Shelter C: Far (~12.5 km) and HAS SPACE (90 kg available space)
+    # 3. Shelter C: Far (~10.5 km) and HAS SPACE (90 kg available space)
     shelter_c = FakeShelter(
         name="Shelter C (Far Away & Has Space)",
         capacity=100.0,
         current_stock=10.0,    # Space left = 90 kg!
-        latitude=37.7000,
-        longitude=-122.4900,
+        latitude=26.8300,
+        longitude=75.8200,
     )
 
     fake_driver = FakeDriver(name="Alex Rivera", phone="+1-415-555-0144")

@@ -19,59 +19,93 @@ def seed_initial_data(db: Session):
     Populates sample shelters and volunteer drivers if the database is empty.
     This lets beginners test endpoints immediately without manual data setup!
     """
-    shelter_count = db.query(models.Recipient).count()
-    if shelter_count == 0:
-        sample_shelters = [
-            models.Recipient(
-                name="Downtown Hope Shelter",
-                phone="+1-415-555-0101",
-                address="500 Market St, San Francisco, CA",
-                capacity=150.0,
-                current_stock=30.0,
-                latitude=37.7897,
-                longitude=-122.4014,
-            ),
-            models.Recipient(
-                name="Mission Community Pantry",
-                phone="+1-415-555-0102",
-                address="2400 Mission St, San Francisco, CA",
-                capacity=100.0,
-                current_stock=15.0,
-                latitude=37.7599,
-                longitude=-122.4190,
-            ),
-            models.Recipient(
-                name="Bay Area Food Bank",
-                phone="+1-415-555-0103",
-                address="900 Marin St, San Francisco, CA",
-                capacity=300.0,
-                current_stock=80.0,
-                latitude=37.7495,
-                longitude=-122.3855,
-            ),
-        ]
-        db.add_all(sample_shelters)
+    jaipur_shelters_data = [
+        {
+            "name": "Malviya Nagar Community Shelter",
+            "phone": "+91-141-2550101",
+            "address": "Malviya Nagar, Jaipur, Rajasthan 302017, India",
+            "capacity": 150.0,
+            "current_stock": 30.0,
+            "latitude": 26.8571,
+            "longitude": 75.8127,
+        },
+        {
+            "name": "C-Scheme Care Shelter",
+            "phone": "+91-141-2380102",
+            "address": "C-Scheme, Ashok Nagar, Jaipur, Rajasthan 302001, India",
+            "capacity": 120.0,
+            "current_stock": 20.0,
+            "latitude": 26.9124,
+            "longitude": 75.8010,
+        },
+        {
+            "name": "Vaishali Nagar Food Relief",
+            "phone": "+91-141-2350103",
+            "address": "Vaishali Nagar, Jaipur, Rajasthan 302021, India",
+            "capacity": 200.0,
+            "current_stock": 45.0,
+            "latitude": 26.9068,
+            "longitude": 75.7420,
+        },
+        {
+            "name": "Mansarovar Community Pantry",
+            "phone": "+91-141-2390104",
+            "address": "Mansarovar, Jaipur, Rajasthan 302020, India",
+            "capacity": 180.0,
+            "current_stock": 40.0,
+            "latitude": 26.8688,
+            "longitude": 75.7645,
+        },
+    ]
+
+    existing_shelters = db.query(models.Recipient).all()
+    if not existing_shelters:
+        for sdata in jaipur_shelters_data:
+            db.add(models.Recipient(**sdata))
         db.commit()
+    else:
+        # Update existing shelters to Jaipur locations in-place
+        for idx, sdata in enumerate(jaipur_shelters_data):
+            if idx < len(existing_shelters):
+                s = existing_shelters[idx]
+                s.name = sdata["name"]
+                s.phone = sdata["phone"]
+                s.address = sdata["address"]
+                s.capacity = sdata["capacity"]
+                s.current_stock = sdata["current_stock"]
+                s.latitude = sdata["latitude"]
+                s.longitude = sdata["longitude"]
+            else:
+                db.add(models.Recipient(**sdata))
+        db.commit()
+
+    jaipur_drivers = [
+        models.Driver(
+            name="Jordan Lee",
+            phone="+919897313403",
+            latitude=26.9124,
+            longitude=75.7873,
+            is_available=True,
+        ),
+        models.Driver(
+            name="Rahul Sharma",
+            phone="+919829012345",
+            latitude=26.8571,
+            longitude=75.8127,
+            is_available=True,
+        ),
+    ]
 
     driver_count = db.query(models.Driver).count()
     if driver_count == 0:
-        sample_drivers = [
-            models.Driver(
-                name="Jordan Lee",
-                phone="+919897313403",
-                latitude=37.7749,
-                longitude=-122.4194,
-                is_available=True,
-            ),
-            models.Driver(
-                name="Sam Patel",
-                phone="+1-415-555-0202",
-                latitude=37.7833,
-                longitude=-122.4167,
-                is_available=True,
-            ),
-        ]
-        db.add_all(sample_drivers)
+        db.add_all(jaipur_drivers)
+        db.commit()
+    else:
+        # Migrate old SF coordinates to Jaipur
+        sf_drivers = db.query(models.Driver).filter(models.Driver.latitude > 30.0).all()
+        for d in sf_drivers:
+            d.latitude = 26.9124
+            d.longitude = 75.7873
         db.commit()
 
     user_count = db.query(models.User).count()
@@ -82,8 +116,8 @@ def seed_initial_data(db: Session):
                 hashed_password=hash_password("donor123"),
                 name="Chef Marco",
                 role="donor",
-                phone="+1-415-555-0188",
-                organization="Green Leaf Bistro",
+                phone="+91-98290-55188",
+                organization="Jaipur Spice Bistro",
             ),
             models.User(
                 email="driver@rescue.org",
@@ -91,15 +125,15 @@ def seed_initial_data(db: Session):
                 name="Jordan Lee",
                 role="driver",
                 phone="+919897313403",
-                organization="SF Volunteer Dispatch",
+                organization="Jaipur Volunteer Dispatch",
             ),
             models.User(
                 email="shelter@hope.org",
                 hashed_password=hash_password("shelter123"),
-                name="Sarah Jenkins",
+                name="Priya Sharma",
                 role="shelter",
-                phone="+1-415-555-0101",
-                organization="Downtown Hope Shelter",
+                phone="+91-141-2380101",
+                organization="C-Scheme Care Shelter",
             ),
         ]
         db.add_all(sample_users)

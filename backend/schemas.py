@@ -39,10 +39,10 @@ class AuthResponse(BaseModel):
 
 # --- Donor Schemas ---
 class DonorCreate(BaseModel):
-    name: str = Field(..., example="Downtown Bakery")
-    phone: Optional[str] = Field(None, example="+1234567890")
-    latitude: float = Field(..., example=37.7749)
-    longitude: float = Field(..., example=-122.4194)
+    name: str = Field(..., example="Kanha Sweets & Bakery")
+    phone: Optional[str] = Field(None, example="+911412550101")
+    latitude: float = Field(..., example=26.9124)
+    longitude: float = Field(..., example=75.8010)
 
 
 class DonorResponse(BaseModel):
@@ -59,15 +59,15 @@ class DonorResponse(BaseModel):
 
 # --- Donation Schemas ---
 class DonationCreate(BaseModel):
-    food_name: str = Field(..., example="Surplus Sandwiches & Salads")
+    food_name: str = Field(..., example="Surplus Sandwiches & Dal Pulao")
     quantity: float = Field(..., gt=0, example=25.0, description="Quantity in kg or meals")
     hours_until_expiry: float = Field(..., gt=0, example=6.0, description="Hours remaining before expiry")
     safety_score: float = Field(0.0, ge=0.0, le=1.0, example=0.1, description="Safety score from 0.0 (safe) to 1.0 (unsafe)")
-    latitude: float = Field(..., example=37.7749, description="Pickup latitude")
-    longitude: float = Field(..., example=-122.4194, description="Pickup longitude")
-    pickup_address: Optional[str] = Field("750 Howard St, San Francisco, CA", example="750 Howard St, San Francisco, CA")
-    donor_name: Optional[str] = Field(None, example="Green Leaf Bistro")
-    donor_phone: Optional[str] = Field(None, example="+14155552671")
+    latitude: float = Field(..., example=26.9189, description="Pickup latitude")
+    longitude: float = Field(..., example=75.8080, description="Pickup longitude")
+    pickup_address: Optional[str] = Field("MI Road, Jaipur, Rajasthan, India", example="MI Road, Jaipur, Rajasthan, India")
+    donor_name: Optional[str] = Field(None, example="Jaipur Spice Bistro")
+    donor_phone: Optional[str] = Field(None, example="+919829055188")
 
 
 class DonationResponse(BaseModel):
@@ -89,13 +89,13 @@ class DonationResponse(BaseModel):
 
 # --- Shelter (Recipient) Schemas ---
 class RecipientCreate(BaseModel):
-    name: str = Field(..., example="Hope Community Shelter")
-    phone: Optional[str] = Field(None, example="+14155551234")
-    address: Optional[str] = Field(None, example="123 Hope Way, San Francisco, CA")
-    capacity: float = Field(..., gt=0, example=100.0, description="Max capacity in kg or meals")
-    current_stock: float = Field(0.0, ge=0, example=20.0, description="Current stock in kg or meals")
-    latitude: float = Field(..., example=37.7833)
-    longitude: float = Field(..., example=-122.4167)
+    name: str = Field(..., example="Malviya Nagar Community Shelter")
+    phone: Optional[str] = Field(None, example="+911412550101")
+    address: Optional[str] = Field(None, example="Malviya Nagar, Jaipur, Rajasthan")
+    capacity: float = Field(..., gt=0, example=150.0, description="Max capacity in kg or meals")
+    current_stock: float = Field(0.0, ge=0, example=30.0, description="Current stock in kg or meals")
+    latitude: float = Field(..., example=26.8571)
+    longitude: float = Field(..., example=75.8127)
 
 
 class RecipientResponse(BaseModel):
@@ -115,10 +115,10 @@ class RecipientResponse(BaseModel):
 
 # --- Driver Schemas ---
 class DriverCreate(BaseModel):
-    name: str = Field(..., example="Alex Smith")
-    phone: str = Field(..., example="+14155559876")
-    latitude: float = Field(..., example=37.7750)
-    longitude: float = Field(..., example=-122.4180)
+    name: str = Field(..., example="Jordan Lee")
+    phone: str = Field(..., example="+919897313403")
+    latitude: float = Field(..., example=26.9124)
+    longitude: float = Field(..., example=75.7873)
     is_available: bool = Field(True, example=True)
 
 

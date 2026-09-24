@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   UtensilsCrossed, Clock, MapPin, Scale, CheckCircle2,
   AlertTriangle, Send, Sparkles, Camera, Image as ImageIcon,
-  Zap, AlertCircle, RefreshCw, X, Flame
+  Zap, AlertCircle, RefreshCw, X, Flame, LogIn, UserPlus, Lock,
+  Building2, Phone, User, Check
 } from 'lucide-react';
 import { 
   submitDonation, 
@@ -15,17 +16,41 @@ import {
   geocodeAddress,
   API_BASE_URL 
 } from '../lib/api';
+import { useAuth } from '../lib/authContext';
 import dynamic from 'next/dynamic';
 
 const RescueMap = dynamic(() => import('../components/RescueMap'), { ssr: false });
 
+const JAIPUR_AREAS = [
+  { name: 'MI Road', address: 'MI Road, Jaipur, Rajasthan', lat: 26.9189, lng: 75.8080 },
+  { name: 'C-Scheme', address: 'C-Scheme, Ashok Nagar, Jaipur, Rajasthan', lat: 26.9124, lng: 75.8010 },
+  { name: 'Malviya Nagar', address: 'Malviya Nagar, Jaipur, Rajasthan', lat: 26.8571, lng: 75.8127 },
+  { name: 'Vaishali Nagar', address: 'Vaishali Nagar, Jaipur, Rajasthan', lat: 26.9068, lng: 75.7420 },
+  { name: 'Mansarovar', address: 'Mansarovar, Jaipur, Rajasthan', lat: 26.8688, lng: 75.7645 },
+  { name: 'Raja Park', address: 'Raja Park, Jaipur, Rajasthan', lat: 26.8976, lng: 75.8270 },
+];
+
 export default function DonatePage() {
+  const { user, login, register, quickLogin, logout, loading: authLoading } = useAuth();
+
+  // In-page Donor Authentication Form States
+  const [authTab, setAuthTab]             = useState('login'); // 'login' | 'register'
+  const [authEmail, setAuthEmail]         = useState('');
+  const [authPassword, setAuthPassword]   = useState('');
+  const [regName, setRegName]             = useState('');
+  const [regOrg, setRegOrg]               = useState('');
+  const [regPhone, setRegPhone]           = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authError, setAuthError]         = useState(null);
+
+  // Donation Form States
   const [foodName, setFoodName]           = useState('');
   const [quantity, setQuantity]           = useState('15');
   const [hours, setHours]                 = useState(6);
-  const [address, setAddress]             = useState('750 Howard St, San Francisco, CA');
-  const [donorName, setDonorName]         = useState('Mission Bakery & Deli');
-  const [donorPhone, setDonorPhone]       = useState('+1-415-555-0188');
+  const [address, setAddress]             = useState('MI Road, Jaipur, Rajasthan');
+  const [pickupCoords, setPickupCoords]   = useState({ lat: 26.9189, lng: 75.8080 });
+  const [donorName, setDonorName]         = useState('Jaipur Spice Bistro');
+  const [donorPhone, setDonorPhone]       = useState('+91 98290 55188');
   
   // AI Safety Score states
   const [hoursSincePosted, setHoursSince] = useState(1);
@@ -46,6 +71,32 @@ export default function DonatePage() {
   const [loading, setLoading]             = useState(false);
   const [result, setResult]               = useState(null);
   const [aiNotice, setAiNotice]           = useState(null);
+
+  // Automatically update donor details if user is logged in
+  useEffect(() => {
+    if (user) {
+      if (user.organization || user.name) {
+        setDonorName(user.organization || user.name);
+      }
+      if (user.phone) {
+        setDonorPhone(user.phone);
+      }
+    }
+  }, [user]);
+
+  // Dynamic geocoding when address changes
+  const handleAddressChange = async (newAddress) => {
+    setAddress(newAddress);
+    try {
+      const coords = await geocodeAddress(newAddress);
+      setPickupCoords(coords);
+    } catch {}
+  };
+
+  const handleSelectArea = (area) => {
+    setAddress(area.address);
+    setPickupCoords({ lat: area.lat, lng: area.lng });
+  };
 
   // Recalculate dynamic safety score whenever hours or safe window change
   const updateSafety = (elapsedHours, safeWinHours, cookedFlag) => {
@@ -97,7 +148,7 @@ export default function DonatePage() {
     }
   };
 
-  // 3. AI TEXT PARSING
+  // 2. AI TEXT PARSING
   const handleParseText = async (customText) => {
     const textToParse = customText || foodName;
     if (!textToParse.trim()) return;
@@ -139,13 +190,20 @@ export default function DonatePage() {
     }
   };
 
+  // 3. SUBMIT DONATION
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      setAuthError('You must be logged in to post surplus food.');
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
-    // Dynamically geocode pickup location
+    // Geocode to guarantee exact coordinates
     const coords = await geocodeAddress(address);
+    setPickupCoords(coords);
 
     const payload = {
       food_name: foodName.trim() || 'Assorted Fresh Surplus Food',
@@ -155,298 +213,536 @@ export default function DonatePage() {
       latitude: coords.lat,
       longitude: coords.lng,
       pickup_address: address,
-      donor_name: donorName || undefined,
-      donor_phone: donorPhone || undefined,
+      donor_name: donorName || user.organization || user.name,
+      donor_phone: donorPhone || user.phone || '+91 98290 55188',
     };
 
     try {
       const donation = await submitDonation(payload);
-      let nearby = null;
-      if (donation.status !== 'rejected') {
+      let nearby = { nearby_shelters: [] };
+      if (donation.status === 'matched') {
         try {
           nearby = await fetchNearbyMatches(donation.id);
         } catch {}
       }
       setResult({ donation, nearby });
     } catch (err) {
-      setResult({ error: err.message });
+      setResult({ error: err.message || 'Submission failed' });
     } finally {
       setLoading(false);
     }
   };
 
-  const isBlockedBySafetyGate = safetyScore > 0.7;
+  // 4. DONOR AUTH HANDLERS
+  const handleDonorLogin = async (e) => {
+    e.preventDefault();
+    setAuthSubmitting(true);
+    setAuthError(null);
+    try {
+      await login(authEmail, authPassword);
+    } catch (err) {
+      setAuthError(err.message || 'Invalid email or password.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
-      {/* ── HEADER (Biteback Style) ── */}
-      <div className="text-center mb-8 space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-biteback-50 border border-biteback-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-biteback-600 animate-pulse"></span>
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-biteback-800">
-            01 // SURPLUS INTAKE & DISPATCH
-          </span>
+  const handleDonorRegister = async (e) => {
+    e.preventDefault();
+    setAuthSubmitting(true);
+    setAuthError(null);
+    try {
+      await register({
+        name: regName,
+        email: authEmail,
+        password: authPassword,
+        role: 'donor',
+        organization: regOrg || undefined,
+        phone: regPhone || undefined,
+      });
+    } catch (err) {
+      setAuthError(err.message || 'Registration failed.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleQuickDemo = async () => {
+    setAuthSubmitting(true);
+    setAuthError(null);
+    try {
+      await quickLogin('donor');
+    } catch (err) {
+      setAuthError(err.message || 'Demo login failed');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // ── RENDER 1: AUTHENTICATION GATE (When user is NOT logged in) ─────────────
+  if (!user && !authLoading) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-12 sm:py-16">
+        {/* Compliance Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-biteback-50 border border-biteback-200/80 mb-3 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-biteback-600 animate-pulse"></span>
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-biteback-800">
+              01 // DONOR ACCESS CONTROL • SPEC.MD
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Surplus Food Rescue Intake
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
+            To ensure food safety compliance, accountability, and traceability (per <strong>SPEC.md</strong>), only authenticated food donors and restaurants can post surplus food.
+          </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Post Surplus Food
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
-          Under 60 seconds. Multimodal AI verifies safety and alerts volunteer drivers within 15 km.
-        </p>
-      </div>
 
-      <div className="bg-white border border-canvas-border rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
-
-        {/* ── 1. AI PHOTO INTAKE BUTTON & PREVIEW ── */}
-        <div className="bg-gradient-to-br from-biteback-50/70 via-white to-orange-50/30 border border-biteback-200/90 rounded-2xl p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-biteback-600 text-white flex items-center justify-center shadow-biteback">
-                <Camera className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">AI Photo Intake (Gemini Vision)</h2>
-                <p className="text-[11px] text-slate-500">Upload a kitchen photo to auto-fill items, weight & safe window</p>
-              </div>
-            </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handlePhotoUpload}
-              accept="image/*"
-              className="hidden"
-            />
-
+        {/* Auth Box */}
+        <div className="bg-white border border-canvas-border rounded-3xl p-6 sm:p-8 shadow-card">
+          {/* Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
             <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={analyzingPhoto}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-biteback-600 hover:bg-biteback-700 text-white text-xs font-bold shadow-biteback transition active:scale-95 disabled:opacity-50"
+              onClick={() => { setAuthTab('login'); setAuthError(null); }}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                authTab === 'login'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              {analyzingPhoto ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Analyzing…</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Upload Photo</span>
-                </>
-              )}
+              <LogIn className="w-3.5 h-3.5 text-biteback-600" />
+              <span>Donor Log In</span>
+            </button>
+            <button
+              onClick={() => { setAuthTab('register'); setAuthError(null); }}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                authTab === 'register'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 text-biteback-600" />
+              <span>Create Donor Account</span>
             </button>
           </div>
 
-          {/* Photo preview thumbnail */}
-          {photoPreview && (
-            <div className="mt-3 relative rounded-xl overflow-hidden border border-biteback-300 max-h-48 bg-slate-900 flex items-center justify-center group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photoPreview}
-                alt="Food Preview"
-                className="w-full h-40 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => { setPhotoPreview(null); setAiPhotoResult(null); }}
-                className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 text-white hover:bg-slate-900 transition"
-                title="Remove photo"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-              {analyzingPhoto && (
-                <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-bold gap-2">
-                  <div className="w-6 h-6 border-2 border-biteback-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Google Gemini Vision analyzing food photo…</span>
-                </div>
-              )}
+          {/* Error Notice */}
+          {authError && (
+            <div className="mb-4 bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{authError}</span>
             </div>
           )}
 
-          {aiPhotoResult && !analyzingPhoto && (
-            <div className="mt-3 bg-white border border-biteback-200 rounded-xl p-3 text-xs text-slate-800 space-y-1">
-              <div className="font-extrabold text-biteback-800 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-biteback-600" />
-                <span>Gemini Vision Detected:</span>
+          {/* Tab 1: Login */}
+          {authTab === 'login' ? (
+            <form onSubmit={handleDonorLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Donor Email Address
+                </label>
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={e => setAuthEmail(e.target.value)}
+                  placeholder="donor@restaurant.com"
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-900"
+                />
               </div>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-slate-600 pt-1 font-mono">
-                <div>Item: <strong className="text-slate-900 font-sans">{aiPhotoResult.item_name}</strong></div>
-                <div>Category: <strong className="text-slate-900 font-sans">{aiPhotoResult.category}</strong></div>
-                <div>Qty: <strong className="text-slate-900 font-sans">{aiPhotoResult.estimated_quantity} {aiPhotoResult.unit}</strong></div>
-                <div>Safe Window: <strong className="text-slate-900 font-sans">{aiPhotoResult.safe_window_hours}h</strong></div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={e => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-900"
+                />
               </div>
-            </div>
+
+              <button
+                type="submit"
+                disabled={authSubmitting}
+                className="w-full py-3.5 rounded-xl bg-biteback-600 hover:bg-biteback-700 text-white font-extrabold text-sm shadow-biteback transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {authSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    <span>Log In & Post Food</span>
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Tab 2: Register */
+            <form onSubmit={handleDonorRegister} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Manager / Donor Name *
+                </label>
+                <input
+                  type="text"
+                  value={regName}
+                  onChange={e => setRegName(e.target.value)}
+                  placeholder="Chef Marco"
+                  required
+                  className="w-full px-4 py-2 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 outline-none text-sm text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Restaurant / Establishment Name *
+                </label>
+                <input
+                  type="text"
+                  value={regOrg}
+                  onChange={e => setRegOrg(e.target.value)}
+                  placeholder="Jaipur Spice Bistro"
+                  required
+                  className="w-full px-4 py-2 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 outline-none text-sm text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                    placeholder="marco@bistro.com"
+                    required
+                    className="w-full px-4 py-2 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 outline-none text-sm text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={regPhone}
+                    onChange={e => setRegPhone(e.target.value)}
+                    placeholder="+91 98290 55188"
+                    className="w-full px-4 py-2 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 outline-none text-sm text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={e => setAuthPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-2 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 outline-none text-sm text-slate-900"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={authSubmitting}
+                className="w-full py-3.5 mt-2 rounded-xl bg-biteback-600 hover:bg-biteback-700 text-white font-extrabold text-sm shadow-biteback transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {authSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    <span>Register Donor Account</span>
+                  </>
+                )}
+              </button>
+            </form>
           )}
+
+          {/* Quick Demo 1-Click Login for Evaluators */}
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <div className="text-[11px] font-mono text-slate-400 text-center uppercase tracking-wider mb-2.5">
+              Hackathon Demo / Instant Access
+            </div>
+            <button
+              onClick={handleQuickDemo}
+              disabled={authSubmitting}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Sign In as Demo Donor (Chef Marco • Jaipur Spice Bistro)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RENDER 2: AUTHENTICATED INTAKE FORM ─────────────────────────────────────
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+      {/* Index Tag & Verified User Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-bold tracking-widest text-biteback-600 uppercase bg-biteback-50 border border-biteback-200/80 px-2.5 py-0.5 rounded-full">
+            01 // FOOD INTAKE
+          </span>
+          <span className="text-[11px] font-mono text-slate-400">JAIPUR RESCUE GRID</span>
         </div>
 
-        {/* AI Notice Banner */}
+        {/* User Identity Pill */}
+        {user && (
+          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold text-emerald-900 self-start sm:self-auto">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Donor: <strong>{user.organization || user.name}</strong></span>
+            <button
+              onClick={logout}
+              className="ml-1 text-[11px] font-mono text-rose-600 hover:underline"
+              title="Sign out of donor account"
+            >
+              (Sign out)
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-canvas-card border border-canvas-border rounded-3xl p-6 sm:p-8 shadow-card">
+        
+        {/* Title */}
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-biteback-50 border border-biteback-100 flex items-center justify-center text-biteback-600 shrink-0 shadow-xs">
+            <UtensilsCrossed className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="font-display font-black text-2xl text-canvas-text tracking-tight">
+              Post Surplus Food
+            </h1>
+            <p className="text-xs sm:text-sm text-canvas-muted mt-0.5 leading-relaxed">
+              Google Gemini Vision extracts safe consumption windows & automates 15 km shelter matching across Jaipur.
+            </p>
+          </div>
+        </div>
+
+        {/* AI Notice Feedback */}
         {aiNotice && (
-          <div className={`p-3.5 rounded-2xl text-xs font-medium flex items-start gap-2.5 ${
-            aiNotice.type === 'success'
-              ? 'bg-biteback-50 text-biteback-900 border border-biteback-200'
-              : 'bg-amber-50 text-amber-900 border border-amber-200'
+          <div className={`mb-6 p-4 rounded-2xl text-xs font-semibold flex items-center justify-between border ${
+            aiNotice.type === 'success' 
+              ? 'bg-biteback-50 text-biteback-900 border-biteback-200' 
+              : 'bg-amber-50 text-amber-900 border-amber-200'
           }`}>
-            <Sparkles className="w-4 h-4 text-biteback-600 shrink-0 mt-0.5" />
-            <div className="flex-1 leading-relaxed">{aiNotice.text}</div>
-            <button type="button" onClick={() => setAiNotice(null)} className="text-slate-400 hover:text-slate-600">
-              <X className="w-3.5 h-3.5" />
+            <span>{aiNotice.text}</span>
+            <button onClick={() => setAiNotice(null)} className="p-1 hover:opacity-70">
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ── 3. AI TEXT PARSING & FOOD DESCRIPTION ── */}
+        {/* ── SECTION 1: AI PHOTO INTAKE ── */}
+        <div className="mb-6 p-4 rounded-2xl bg-canvas-subtle border border-canvas-border">
+          <div className="flex items-center justify-between mb-3">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+              <Camera className="w-4 h-4 text-biteback-600" />
+              <span>Smart Intake: Snap Photo of Surplus Food</span>
+            </span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-biteback-600 bg-biteback-50 px-2 py-0.5 rounded-full border border-biteback-200/60">
+              Gemini Vision
+            </span>
+          </div>
+
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+
+          {photoPreview ? (
+            <div className="relative rounded-xl overflow-hidden border border-canvas-border max-h-48 group">
+              <img src={photoPreview} alt="Food Intake" className="w-full h-48 object-cover" />
+              <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-white text-xs font-bold text-slate-900 hover:bg-slate-100 shadow-md"
+                >
+                  Change Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPhotoPreview(null); setAiPhotoResult(null); }}
+                  className="p-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 shadow-md"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={analyzingPhoto}
+              className="w-full py-6 px-4 rounded-xl border-2 border-dashed border-canvas-border hover:border-biteback-500 bg-white hover:bg-biteback-50/30 transition flex flex-col items-center justify-center gap-2 group cursor-pointer"
+            >
+              {analyzingPhoto ? (
+                <>
+                  <RefreshCw className="w-6 h-6 text-biteback-600 animate-spin" />
+                  <span className="text-xs font-bold text-biteback-700">Gemini Vision is analyzing food & portions…</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-biteback-50 text-biteback-600 flex items-center justify-center group-hover:scale-110 transition">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-xs font-extrabold text-slate-800">Upload or snap a food photo</span>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Gemini automatically identifies food, estimates kg, and sets safety window</p>
+                  </div>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* ── SECTION 2: DONATION INPUT FORM ── */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {/* Food Description with Natural AI Parse */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <span>Food Description</span>
-                <span className="text-[11px] font-normal text-slate-400">(or speak kitchen shorthand)</span>
+              <label className="text-sm font-bold text-slate-800">
+                Food Name & Description *
               </label>
-
               <button
                 type="button"
                 onClick={() => handleParseText()}
                 disabled={parsingText || !foodName.trim()}
-                className="inline-flex items-center gap-1 text-xs font-mono font-bold text-biteback-700 bg-biteback-50 hover:bg-biteback-100 border border-biteback-200 px-2.5 py-1 rounded-lg transition disabled:opacity-40"
+                className="text-[11px] font-bold text-biteback-600 hover:text-biteback-700 disabled:opacity-40 flex items-center gap-1 font-mono"
               >
-                <Sparkles className={`w-3 h-3 ${parsingText ? 'animate-spin' : ''}`} />
-                <span>{parsingText ? 'Extracting…' : 'AI Parse Text'}</span>
+                <Sparkles className="w-3 h-3" />
+                <span>{parsingText ? 'Parsing…' : 'AI Parse Text'}</span>
               </button>
             </div>
-
-            <textarea
-              rows={3}
+            <input
+              type="text"
               value={foodName}
               onChange={e => setFoodName(e.target.value)}
-              placeholder="e.g. 30 samosas from party, good for 4 hrs"
+              placeholder="e.g. 25 kg Dal Makhani, Fresh Chapati & Pulao"
               required
-              className="w-full px-4 py-3 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-800 placeholder-slate-400 transition resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-800 transition"
             />
-
-            {/* Quick-test Prompt Pill */}
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-[11px] font-mono text-slate-400">Quick Test:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const sample = "30 samosas from party, good for 4 hrs";
-                  setFoodName(sample);
-                  handleParseText(sample);
-                }}
-                className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition flex items-center gap-1"
-              >
-                <Zap className="w-3 h-3 text-amber-500" />
-                <span>"30 samosas from party, good for 4 hrs"</span>
-              </button>
-            </div>
           </div>
 
-          {/* Quantity & Donor Name */}
+          {/* Quantity & Hours Expiry Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="flex items-center gap-1.5 text-sm font-bold text-slate-800 mb-1.5">
                 <Scale className="w-4 h-4 text-biteback-600" />
-                <span>Quantity (kg / meals)</span>
+                <span>Quantity (kg or portions) *</span>
               </label>
               <input
                 type="number"
-                min="1"
+                min="0.5"
                 step="0.5"
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm font-mono text-slate-800 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-800 mb-1.5">
-                Donor / Restaurant
-              </label>
-              <input
-                type="text"
-                value={donorName}
-                onChange={e => setDonorName(e.target.value)}
-                placeholder="Restaurant name"
                 className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-800 transition"
               />
             </div>
-          </div>
 
-          {/* "Use Within" Slider */}
-          <div className="bg-canvas-subtle border border-canvas-border rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-                <Clock className="w-4 h-4 text-biteback-600" />
-                <span>Safe Window</span>
-              </label>
-              <span className="text-xs font-mono font-extrabold text-biteback-800 bg-biteback-50 border border-biteback-200 px-3 py-1 rounded-full">
-                {hours} {hours === 1 ? 'hour' : 'hours'}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="12"
-              step="1"
-              value={hours}
-              onChange={e => {
-                const val = parseInt(e.target.value);
-                setHours(val);
-                updateSafety(hoursSincePosted, val, isCooked);
-              }}
-              className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-biteback-600"
-            />
-            <div className="flex justify-between text-[11px] font-mono text-slate-500 mt-1.5">
-              <span>1 hr (Urgent)</span>
-              <span>6 hrs (Typical)</span>
-              <span>12 hrs (Fresh)</span>
-            </div>
-          </div>
-
-          {/* ── 2. AI SAFETY SCORE FORMULA & GAUGE ── */}
-          <div className="bg-canvas-subtle border border-canvas-border rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700">
-                  AI Safety Risk Score
+            <div>
+              <label className="flex items-center justify-between text-sm font-bold text-slate-800 mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-biteback-600" />
+                  <span>Hours Until Expiry *</span>
                 </span>
-                <p className="text-[11px] font-mono text-slate-400">
-                  Score = (hours_since_posted / safe_window) × {isCooked ? '1.25 (Cooked)' : '1.0 (Raw)'}
-                </p>
-              </div>
-
-              <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${
-                isBlockedBySafetyGate
-                  ? 'bg-rose-100 text-rose-700 border-rose-300'
-                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-              }`}>
-                {isBlockedBySafetyGate
-                  ? `🛑 BLOCKED (${safetyScore})`
-                  : `✅ SAFE (${safetyScore})`}
-              </span>
-            </div>
-
-            <div className="pt-2 border-t border-slate-200">
-              <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
-                <span>Simulate Hours Since Cooked:</span>
-                <strong className="text-slate-900 font-mono">{hoursSincePosted} hr{hoursSincePosted === 1 ? '' : 's'}</strong>
-              </div>
+                <span className="font-mono text-xs font-black text-biteback-600">{hours} hrs</span>
+              </label>
               <input
                 type="range"
-                min="0"
-                max={hours + 2}
+                min="1"
+                max="12"
                 step="0.5"
-                value={hoursSincePosted}
+                value={hours}
                 onChange={e => {
                   const val = parseFloat(e.target.value);
-                  updateSafety(val, hours, isCooked);
+                  setHours(val);
+                  updateSafety(hoursSincePosted, val, isCooked);
                 }}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                className="w-full accent-biteback-600 cursor-pointer"
               />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-1">
+                <span>1h (Urgent)</span>
+                <span>6h (Normal)</span>
+                <span>12h (Extended)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Safety Gate Calculator per SPEC.md */}
+          <div className="p-4 rounded-2xl bg-canvas-subtle border border-canvas-border space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-biteback-600" />
+                <span>Food Safety Score (SPEC.md Hard Rule)</span>
+              </span>
+              <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-md ${
+                safetyScore > 0.7 
+                  ? 'bg-rose-100 text-rose-700 border border-rose-300' 
+                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+              }`}>
+                Score: {safetyScore} {safetyScore > 0.7 ? '(REJECTED)' : '(SAFE)'}
+              </span>
             </div>
 
-            {isBlockedBySafetyGate && (
+            <div className="flex items-center gap-4 text-xs">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isCooked}
+                  onChange={e => {
+                    setIsCooked(e.target.checked);
+                    updateSafety(hoursSincePosted, hours, e.target.checked);
+                  }}
+                  className="rounded text-biteback-600 focus:ring-biteback-500"
+                />
+                <span className="text-slate-700 font-medium">Cooked/Prepared Meal</span>
+              </label>
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-slate-500 text-[11px]">Elapsed:</span>
+                <select
+                  value={hoursSincePosted}
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    updateSafety(val, hours, isCooked);
+                  }}
+                  className="px-2 py-1 rounded-lg border border-canvas-border text-xs bg-white text-slate-800 outline-none"
+                >
+                  <option value="0.5">30 mins</option>
+                  <option value="1">1 hour</option>
+                  <option value="2">2 hours</option>
+                  <option value="4">4 hours</option>
+                  <option value="6">6+ hours</option>
+                </select>
+              </div>
+            </div>
+
+            {safetyScore > 0.7 && (
               <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>Safety score {safetyScore} exceeds 0.7 limit. Matching will be blocked per SPEC.md.</span>
@@ -454,32 +750,88 @@ export default function DonatePage() {
             )}
           </div>
 
-          {/* Address */}
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-bold text-slate-800 mb-1.5">
-              <MapPin className="w-4 h-4 text-biteback-600" />
-              <span>Pickup Address</span>
-            </label>
+          {/* ── SECTION 3: PICKUP ADDRESS & LIVE JAIPUR MAP ── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                <MapPin className="w-4 h-4 text-biteback-600" />
+                <span>Pickup Address (Jaipur, Rajasthan) *</span>
+              </label>
+              <span className="text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Exact Map Coordinates: {pickupCoords.lat.toFixed(4)}, {pickupCoords.lng.toFixed(4)}
+              </span>
+            </div>
+
             <input
               type="text"
               value={address}
-              onChange={e => setAddress(e.target.value)}
-              placeholder="e.g. 750 Howard St, San Francisco, CA"
+              onChange={e => handleAddressChange(e.target.value)}
+              placeholder="e.g. MI Road, Jaipur, Rajasthan"
               required
               className="w-full px-4 py-2.5 rounded-xl border border-canvas-border focus:ring-2 focus:ring-biteback-500 focus:border-biteback-500 outline-none text-sm text-slate-800 transition"
             />
+
+            {/* Quick Jaipur Area Chips */}
+            <div>
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
+                Quick Select Jaipur Location:
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {JAIPUR_AREAS.map((area) => (
+                  <button
+                    key={area.name}
+                    type="button"
+                    onClick={() => handleSelectArea(area)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      address.includes(area.name)
+                        ? 'bg-biteback-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    📍 {area.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* LIVE PICKUP MAP PREVIEW */}
+            <div className="rounded-2xl overflow-hidden border border-canvas-border shadow-xs">
+              <div className="bg-slate-50 px-3 py-2 border-b border-canvas-border flex items-center justify-between text-xs font-bold text-slate-700">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  Live Pickup Camera View (Shifts dynamically with address)
+                </span>
+                <span className="font-mono text-[10px] text-slate-500">15 km Coverage Zone</span>
+              </div>
+              <RescueMap
+                key={`pickup-preview-${pickupCoords.lat}-${pickupCoords.lng}`}
+                donorPoint={{
+                  lat: pickupCoords.lat,
+                  lng: pickupCoords.lng,
+                  name: donorName || 'Donor Pickup Point',
+                  address: address,
+                  foodName: foodName || 'Surplus Food',
+                  quantity: quantity,
+                }}
+                show15kmRadius={true}
+                height="200px"
+                zoom={14}
+                center={[pickupCoords.lat, pickupCoords.lng]}
+                theme="light"
+              />
+            </div>
           </div>
 
           {/* BIG BITEBACK BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 px-6 rounded-2xl bg-biteback-600 hover:bg-biteback-700 active:scale-[0.99] text-white font-extrabold text-base shadow-biteback transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-4 px-6 rounded-2xl bg-biteback-600 hover:bg-biteback-700 active:scale-[0.99] text-white font-extrabold text-base shadow-biteback transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Running Matcher (max 2s)…</span>
+                <span>Running Matcher in Jaipur (max 2s)…</span>
               </>
             ) : (
               <>
@@ -509,7 +861,7 @@ export default function DonatePage() {
                 </div>
                 <p className="text-xs mt-1.5 leading-relaxed">
                   Safety score was <strong>{result.donation.safety_score}</strong> (exceeds 0.7 threshold).
-                  Per safety rules, this food is never matched.
+                  Per safety rules in SPEC.md, this food is never matched.
                 </p>
               </div>
             ) : (
@@ -517,7 +869,7 @@ export default function DonatePage() {
                 <div className="bg-biteback-50 border border-biteback-200 rounded-2xl p-5">
                   <div className="flex items-center gap-2 font-black text-base text-biteback-900">
                     <CheckCircle2 className="w-6 h-6 text-biteback-600" />
-                    Donation #{result.donation.id} Posted & Matched!
+                    Donation #{result.donation.id} Posted & Matched in Jaipur!
                   </div>
                   <p className="text-xs text-biteback-800 mt-2 leading-relaxed">
                     <strong>{result.donation.food_name}</strong> ({result.donation.quantity} kg) — Status:{' '}
@@ -529,7 +881,7 @@ export default function DonatePage() {
                 {result.nearby?.nearby_shelters?.length > 0 && (
                   <div>
                     <h3 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
-                      Ranked Nearby Shelters (Within 15 km)
+                      Ranked Nearby Shelters in Jaipur (Within 15 km)
                     </h3>
                     <div className="space-y-2">
                       {result.nearby.nearby_shelters.slice(0, 3).map((s, i) => (
@@ -560,12 +912,12 @@ export default function DonatePage() {
                       ))}
                     </div>
 
-                    {/* 15 km Radius Coverage Map */}
+                    {/* 15 km Radius Coverage Map with Matched Route */}
                     <div className="mt-4 pt-3 border-t border-slate-200 space-y-1.5">
                       <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                         <span className="flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-biteback-600" />
-                          15 km Rescue Zone & Top Matched Shelter
+                          15 km Jaipur Rescue Zone & Matched Shelter Route
                         </span>
                         <span className="text-[11px] font-mono text-biteback-700 font-semibold">
                           Max Radius: 15 km
@@ -574,22 +926,22 @@ export default function DonatePage() {
                       <RescueMap
                         key={`donate-map-${result.donation.id}`}
                         donorPoint={{
-                          lat: result.donation.latitude || 37.7850,
-                          lng: result.donation.longitude || -122.4005,
+                          lat: result.donation.latitude || pickupCoords.lat,
+                          lng: result.donation.longitude || pickupCoords.lng,
                           name: donorName || 'Food Donor Pickup',
                           address: address,
                           foodName: result.donation.food_name,
                           quantity: result.donation.quantity,
                         }}
                         recipientPoint={{
-                          lat: result.nearby?.nearby_shelters?.[0]?.latitude || 37.7899,
-                          lng: result.nearby?.nearby_shelters?.[0]?.longitude || -122.4000,
-                          name: result.nearby?.nearby_shelters?.[0]?.shelter_name || 'Matched Shelter',
-                          address: result.nearby?.nearby_shelters?.[0]?.address || '500 Market St, San Francisco',
+                          lat: result.nearby?.nearby_shelters?.[0]?.latitude || 26.9124,
+                          lng: result.nearby?.nearby_shelters?.[0]?.longitude || 75.8010,
+                          name: result.nearby?.nearby_shelters?.[0]?.shelter_name || 'C-Scheme Care Shelter',
+                          address: result.nearby?.nearby_shelters?.[0]?.address || 'C-Scheme, Ashok Nagar, Jaipur',
                         }}
                         showRoute={true}
                         show15kmRadius={true}
-                        height="220px"
+                        height="240px"
                         theme="light"
                       />
                     </div>

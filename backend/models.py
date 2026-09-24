@@ -47,7 +47,7 @@ class Donation(Base):
     status = Column(String, default="posted", nullable=False)  # posted, matched, rejected, completed
     latitude = Column(Float, nullable=False)  # pickup location latitude
     longitude = Column(Float, nullable=False)  # pickup location longitude
-    pickup_address = Column(String, nullable=True, default="750 Howard St, San Francisco, CA")
+    pickup_address = Column(String, nullable=True, default="MI Road, Jaipur, Rajasthan, India")
     created_at = Column(DateTime, default=utc_now)
 
     # Relationships

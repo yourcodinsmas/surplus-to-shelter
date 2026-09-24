@@ -21,14 +21,15 @@ def test_complete_flow():
 
     print("\n--- 2. Testing POST /donations (Safe Food) ---")
     donation_data = {
-        "donor_name": "Sunset Bakery",
-        "donor_phone": "+1-415-555-0199",
+        "donor_name": "Kanha Sweets & Bakery",
+        "donor_phone": "+91-141-2550199",
         "food_name": "Fresh Croissants & Bagels",
         "quantity": 15.0,
         "hours_until_expiry": 8.0,
         "safety_score": 0.1,  # Safe (< 0.7)
-        "latitude": 37.7749,
-        "longitude": -122.4194,
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "pickup_address": "MI Road, Jaipur, Rajasthan",
     }
     res = client.post("/donations", json=donation_data)
     assert res.status_code == 201, f"Expected 201, got {res.status_code}: {res.text}"
@@ -40,13 +41,14 @@ def test_complete_flow():
     print("\n--- 3. Testing POST /donations (Hard Safety Rule: score > 0.7) ---")
     unsafe_donation_data = {
         "donor_name": "Suspicious Seafood",
-        "donor_phone": "+1-415-555-0999",
+        "donor_phone": "+91-141-2550999",
         "food_name": "Leftover Sushi Buffet",
         "quantity": 20.0,
         "hours_until_expiry": 1.0,
         "safety_score": 0.85,  # Unsafe (> 0.7)
-        "latitude": 37.7749,
-        "longitude": -122.4194,
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "pickup_address": "MI Road, Jaipur, Rajasthan",
     }
     res = client.post("/donations", json=unsafe_donation_data)
     assert res.status_code == 201

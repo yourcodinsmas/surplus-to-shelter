@@ -372,11 +372,11 @@ export default function DriverPage() {
   const ORDER  = ['matched', 'accepted', 'picked_up', 'delivered'];
   const step   = ORDER.indexOf(status ?? 'matched');
 
-  // Dynamic Pickup and Dropoff Coordinates for Map
-  const pickupLat = currentJob?.pickup_latitude || currentJob?.latitude || 37.7634;
-  const pickupLng = currentJob?.pickup_longitude || currentJob?.longitude || -122.4682;
-  const dropoffLat = currentJob?.recipient_latitude || 37.7899;
-  const dropoffLng = currentJob?.recipient_longitude || -122.4000;
+  // Dynamic Pickup and Dropoff Coordinates for Map (Jaipur, Rajasthan)
+  const pickupLat = currentJob?.pickup_latitude || currentJob?.latitude || 26.9189;
+  const pickupLng = currentJob?.pickup_longitude || currentJob?.longitude || 75.8080;
+  const dropoffLat = currentJob?.recipient_latitude || 26.9124;
+  const dropoffLng = currentJob?.recipient_longitude || 75.8010;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
@@ -580,8 +580,8 @@ export default function DriverPage() {
                   address: currentJob.recipient_address,
                 }}
                 driverPoint={{
-                  lat: 37.7749,
-                  lng: -122.4194,
+                  lat: 26.9124,
+                  lng: 75.7873,
                   name: `${user.name} (You)`,
                 }}
                 showRoute={true}

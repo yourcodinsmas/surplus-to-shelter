@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
  * Safely renders only in browser (client-side) to avoid SSR errors.
  *
  * Props:
- * - center: [lat, lng] (default: San Francisco)
+ * - center: [lat, lng] (default: Jaipur, Rajasthan)
  * - zoom: number (default: 13)
  * - donorPoint: { lat, lng, name, address, foodName, quantity }
  * - recipientPoint: { lat, lng, name, address, capacity, currentStock }
@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from 'react';
  * - height: string (e.g. '340px' or '450px')
  */
 export default function RescueMap({
-  center = [37.7749, -122.4194],
+  center = [26.9124, 75.7873],
   zoom = 13,
   donorPoint,
   recipientPoint,
@@ -309,10 +309,23 @@ export default function RescueMap({
         });
       }
 
-      // Auto-fit bounds if we have multiple points
+      // Auto-fit bounds if we have multiple points or shift camera to exact pickup point
       if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true });
+      } else if (bounds.length === 1) {
+        map.flyTo(bounds[0], Math.max(zoom, 14), { animate: true, duration: 1.0 });
+      } else if (donorPoint && donorPoint.lat && donorPoint.lng) {
+        map.flyTo([donorPoint.lat, donorPoint.lng], Math.max(zoom, 14), { animate: true, duration: 1.0 });
       }
+
+      // Ensure Leaflet tiles calculate container dimensions properly
+      setTimeout(() => {
+        try {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        } catch {}
+      }, 250);
 
       setMapLoaded(true);
     });

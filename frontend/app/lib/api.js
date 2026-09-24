@@ -11,50 +11,50 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost
 export const SAMPLE_MATCHES = [
   {
     id: 101, donation_id: 1, food_name: "Artisan Bread & Fresh Bagels",
-    quantity: 18.5, donor_name: "Golden Gate Bakery",
-    recipient_name: "Downtown Hope Shelter",
-    recipient_address: "500 Market St, San Francisco",
-    recipient_latitude: 37.7899, recipient_longitude: -122.4000,
-    pickup_address: "1420 Irving St, San Francisco",
-    pickup_latitude: 37.7634, pickup_longitude: -122.4682,
+    quantity: 18.5, donor_name: "Kanha Sweets & Bakery",
+    recipient_name: "C-Scheme Care Shelter",
+    recipient_address: "C-Scheme, Ashok Nagar, Jaipur, Rajasthan 302001",
+    recipient_latitude: 26.9124, recipient_longitude: 75.8010,
+    pickup_address: "MI Road, Jaipur, Rajasthan 302001",
+    pickup_latitude: 26.9189, pickup_longitude: 75.8080,
     driver_name: "Jordan Lee", driver_phone: "+91 9897313403",
-    distance_km: 2.1, match_score: 0.94, status: "picked_up",
+    distance_km: 1.4, match_score: 0.96, status: "picked_up",
     created_at: new Date(Date.now() - 10 * 60000).toISOString(),
   },
   {
     id: 102, donation_id: 2, food_name: "Organic Veggie & Lentil Bowls",
-    quantity: 32.0, donor_name: "Green Sprout Cafe",
-    recipient_name: "Mission Community Pantry",
-    recipient_address: "2400 Mission St, San Francisco",
-    recipient_latitude: 37.7597, recipient_longitude: -122.4190,
-    pickup_address: "350 California St, San Francisco",
-    pickup_latitude: 37.7929, pickup_longitude: -122.4018,
-    driver_name: "Sam Patel", driver_phone: "+1-415-555-0202",
-    distance_km: 1.6, match_score: 0.96, status: "delivered",
+    quantity: 32.0, donor_name: "LMB Restaurant & Sweets",
+    recipient_name: "Malviya Nagar Community Shelter",
+    recipient_address: "Malviya Nagar, Jaipur, Rajasthan 302017",
+    recipient_latitude: 26.8571, recipient_longitude: 75.8127,
+    pickup_address: "Johari Bazaar, Jaipur, Rajasthan 302003",
+    pickup_latitude: 26.9200, pickup_longitude: 75.8270,
+    driver_name: "Rahul Sharma", driver_phone: "+91 98290 12345",
+    distance_km: 7.2, match_score: 0.91, status: "delivered",
     created_at: new Date(Date.now() - 45 * 60000).toISOString(),
   },
   {
-    id: 103, donation_id: 3, food_name: "Catering Trays: Roasted Chicken & Rice",
-    quantity: 45.0, donor_name: "Tech Summit Catering",
-    recipient_name: "Bay Area Food Bank",
-    recipient_address: "900 Marin St, San Francisco",
-    recipient_latitude: 37.7490, recipient_longitude: -122.3870,
-    pickup_address: "750 Howard St, San Francisco",
-    pickup_latitude: 37.7836, pickup_longitude: -122.4011,
+    id: 103, donation_id: 3, food_name: "Catering Trays: Paneer Butter Masala & Pulao",
+    quantity: 45.0, donor_name: "Jaipur Palace Banquets",
+    recipient_name: "Vaishali Nagar Food Relief",
+    recipient_address: "Vaishali Nagar, Jaipur, Rajasthan 302021",
+    recipient_latitude: 26.9068, recipient_longitude: 75.7420,
+    pickup_address: "Tonk Road, Jaipur, Rajasthan 302018",
+    pickup_latitude: 26.8785, pickup_longitude: 75.8042,
     driver_name: null, driver_phone: null,
-    distance_km: 3.8, match_score: 0.88, status: "matched",
+    distance_km: 7.1, match_score: 0.88, status: "matched",
     created_at: new Date(Date.now() - 2 * 60000).toISOString(),
   },
   {
-    id: 104, donation_id: 4, food_name: "Packaged Sandwiches & Salads",
-    quantity: 24.0, donor_name: "Bistro 44",
-    recipient_name: "Downtown Hope Shelter",
-    recipient_address: "500 Market St, San Francisco",
-    recipient_latitude: 37.7899, recipient_longitude: -122.4000,
-    pickup_address: "88 Kearny St, San Francisco",
-    pickup_latitude: 37.7885, pickup_longitude: -122.4042,
-    driver_name: "Alex Rivera", driver_phone: "+1-415-555-0144",
-    distance_km: 1.2, match_score: 0.92, status: "accepted",
+    id: 104, donation_id: 4, food_name: "Packaged Sandwiches & Fresh Fruit Platters",
+    quantity: 24.0, donor_name: "Tapri Central",
+    recipient_name: "Mansarovar Community Pantry",
+    recipient_address: "Mansarovar, Jaipur, Rajasthan 302020",
+    recipient_latitude: 26.8688, recipient_longitude: 75.7645,
+    pickup_address: "C-Scheme, Jaipur, Rajasthan 302001",
+    pickup_latitude: 26.9124, pickup_longitude: 75.8010,
+    driver_name: "Alex Rivera", driver_phone: "+91 98290 99887",
+    distance_km: 6.2, match_score: 0.93, status: "accepted",
     created_at: new Date(Date.now() - 25 * 60000).toISOString(),
   },
 ];
@@ -260,21 +260,23 @@ export async function fetchShelters() {
     return res.json();
   } catch {
     return [
-      { id: 1, name: "Downtown Hope Shelter", address: "500 Market St, San Francisco, CA", capacity: 150.0, current_stock: 30.0, latitude: 37.7899, longitude: -122.4000 },
-      { id: 2, name: "Mission Community Pantry", address: "2400 Mission St, San Francisco, CA", capacity: 100.0, current_stock: 15.0, latitude: 37.7599, longitude: -122.4190 },
-      { id: 3, name: "Bay Area Food Bank", address: "900 Marin St, San Francisco, CA", capacity: 300.0, current_stock: 80.0, latitude: 37.7495, longitude: -122.3855 },
+      { id: 1, name: "Malviya Nagar Community Shelter", address: "Malviya Nagar, Jaipur, Rajasthan 302017", capacity: 150.0, current_stock: 30.0, latitude: 26.8571, longitude: 75.8127 },
+      { id: 2, name: "C-Scheme Care Shelter", address: "C-Scheme, Ashok Nagar, Jaipur, Rajasthan 302001", capacity: 120.0, current_stock: 20.0, latitude: 26.9124, longitude: 75.8010 },
+      { id: 3, name: "Vaishali Nagar Food Relief", address: "Vaishali Nagar, Jaipur, Rajasthan 302021", capacity: 200.0, current_stock: 45.0, latitude: 26.9068, longitude: 75.7420 },
+      { id: 4, name: "Mansarovar Community Pantry", address: "Mansarovar, Jaipur, Rajasthan 302020", capacity: 180.0, current_stock: 40.0, latitude: 26.8688, longitude: 75.7645 },
     ];
   }
 }
 
-/** 9. Geocode address via Mapbox API with local SF neighborhood coordinates fallback */
+/** 9. Geocode address via Mapbox API with local Jaipur, Rajasthan coordinates fallback */
 export async function geocodeAddress(address) {
-  if (!address || typeof address !== 'string') return { lat: 37.7850, lng: -122.4005 };
+  if (!address || typeof address !== 'string') return { lat: 26.9124, lng: 75.7873 };
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim();
   if (mapboxToken && mapboxToken.startsWith('pk.')) {
     try {
-      const query = encodeURIComponent(`${address}, San Francisco, CA`);
+      const queryStr = address.toLowerCase().includes('jaipur') ? address : `${address}, Jaipur, Rajasthan, India`;
+      const query = encodeURIComponent(queryStr);
       const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxToken}&limit=1`);
       if (res.ok) {
         const data = await res.json();
@@ -288,21 +290,26 @@ export async function geocodeAddress(address) {
     }
   }
 
-  // Reliable offline SF address coordinate lookup
+  // Reliable offline Jaipur address coordinate lookup
   const lower = address.toLowerCase();
-  if (lower.includes('irving') || lower.includes('sunset')) return { lat: 37.7634, lng: -122.4682 };
-  if (lower.includes('california') || lower.includes('nob hill')) return { lat: 37.7929, lng: -122.4018 };
-  if (lower.includes('howard') || lower.includes('soma')) return { lat: 37.7836, lng: -122.4011 };
-  if (lower.includes('kearny') || lower.includes('chinatown')) return { lat: 37.7885, lng: -122.4042 };
-  if (lower.includes('mission') || lower.includes('valencia')) return { lat: 37.7597, lng: -122.4190 };
-  if (lower.includes('market')) return { lat: 37.7899, lng: -122.4000 };
-  if (lower.includes('van ness') || lower.includes('civic')) return { lat: 37.7758, lng: -122.4194 };
-  if (lower.includes('marin') || lower.includes('bayview')) return { lat: 37.7490, lng: -122.3870 };
-  if (lower.includes('geary') || lower.includes('richmond')) return { lat: 37.7816, lng: -122.4285 };
-  if (lower.includes('castro')) return { lat: 37.7609, lng: -122.4350 };
-  if (lower.includes('columbus') || lower.includes('north beach')) return { lat: 37.7986, lng: -122.4074 };
+  if (lower.includes('malviya nagar') || lower.includes('malviya')) return { lat: 26.8571, lng: 75.8127 };
+  if (lower.includes('c-scheme') || lower.includes('cscheme') || lower.includes('ashok nagar')) return { lat: 26.9124, lng: 75.8010 };
+  if (lower.includes('vaishali nagar') || lower.includes('vaishali')) return { lat: 26.9068, lng: 75.7420 };
+  if (lower.includes('mansarovar')) return { lat: 26.8688, lng: 75.7645 };
+  if (lower.includes('raja park')) return { lat: 26.8976, lng: 75.8270 };
+  if (lower.includes('mi road') || lower.includes('mirza ismail')) return { lat: 26.9189, lng: 75.8080 };
+  if (lower.includes('tonk road')) return { lat: 26.8785, lng: 75.8042 };
+  if (lower.includes('jhotwara')) return { lat: 26.9660, lng: 75.7535 };
+  if (lower.includes('hawa mahal') || lower.includes('badi chaupar')) return { lat: 26.9239, lng: 75.8267 };
+  if (lower.includes('civil lines')) return { lat: 26.9079, lng: 75.7891 };
+  if (lower.includes('vidhyadhar nagar') || lower.includes('vidhyadhar')) return { lat: 26.9632, lng: 75.7766 };
+  if (lower.includes('bani park')) return { lat: 26.9312, lng: 75.7925 };
+  if (lower.includes('sitapura')) return { lat: 26.7820, lng: 75.8240 };
+  if (lower.includes('sanganer')) return { lat: 26.8188, lng: 75.7770 };
+  if (lower.includes('johari') || lower.includes('bazaar')) return { lat: 26.9200, lng: 75.8270 };
+  if (lower.includes('gopalpura')) return { lat: 26.8637, lng: 75.7898 };
 
-  return { lat: 37.7850, lng: -122.4005 };
+  return { lat: 26.9124, lng: 75.7873 };
 }
 
 

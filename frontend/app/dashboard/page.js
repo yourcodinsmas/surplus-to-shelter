@@ -212,7 +212,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">City-Wide Shelter Network & Live Dispatches</h2>
-                <p className="text-xs font-mono text-slate-400">Live pantry capacity monitoring across San Francisco</p>
+                <p className="text-xs font-mono text-slate-400">Live pantry capacity monitoring across Jaipur, Rajasthan</p>
               </div>
             </div>
             <span className="text-xs px-3 py-1 rounded-full bg-biteback-950/80 text-biteback-300 border border-biteback-800/80 font-mono font-medium self-start sm:self-auto">
@@ -225,7 +225,7 @@ export default function DashboardPage() {
             theme="dark"
             height="340px"
             zoom={12}
-            center={[37.7749, -122.4194]}
+            center={[26.9124, 75.7873]}
           />
         </div>
 

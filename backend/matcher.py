@@ -271,7 +271,7 @@ def find_and_create_match(
         )
 
         # Get pickup address
-        pickup_address = getattr(donation, "pickup_address", None) or "750 Howard St, San Francisco, CA"
+        pickup_address = getattr(donation, "pickup_address", None) or "MI Road, Jaipur, Rajasthan, India"
 
         # Dispatch REAL Twilio SMS as requested:
         # "New pickup at [address]. Deliver to [shelter]. Reply YES to accept."
