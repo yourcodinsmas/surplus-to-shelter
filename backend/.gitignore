@@ -1,0 +1,19 @@
+# Secrets & environment variables
+.env
+.env*
+*.env
+.env.local
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# SQLite local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
