@@ -14,8 +14,8 @@ A donor posts surplus food in under 60 seconds (photo or text). The system match
 
 | Part | Link |
 | --- | --- |
-| Frontend (Vercel) | `https://your-app.vercel.app` |
-| Backend API (Render) | `https://your-api.onrender.com/docs` |
+| Frontend (Vercel) | `https://surplus2shelter.vercel.app` |
+| Backend API (Render) | `https://surplus-to-shelter-42z0.onrender.com/docs` |
 
 ## The Full Loop
 
