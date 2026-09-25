@@ -34,13 +34,13 @@ export default function HomePage() {
 
           <p className="text-base sm:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
             Connecting restaurants and grocers to local shelters in minutes.
-            Powered by Google Gemini Vision, 15 km spatial scoring, and autonomous driver dispatch.
+            Powered by Intelligent Food Vision, 15 km spatial scoring, and autonomous driver dispatch.
           </p>
 
           {/* Quick Metrics Bar */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs font-mono">
             <span className="px-3 py-1 rounded-lg bg-white border border-canvas-border text-slate-700 font-semibold shadow-xs">
-              ⚡ &lt; 2s AI Match Latency
+              ⚡ &lt; 2s Match Latency
             </span>
             <span className="px-3 py-1 rounded-lg bg-white border border-canvas-border text-slate-700 font-semibold shadow-xs">
               📍 15 km Radius Enforced
@@ -85,7 +85,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-xl font-black text-slate-900 mb-2">Donor Surplus Intake</h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
-                Snap a photo or type naturally. Google Gemini Vision extracts quantity, safe expiry window, and runs automated safety checks.
+                Snap a photo or type naturally. Intelligent Food Vision extracts quantity, safe expiry window, and runs automated safety checks.
               </p>
             </div>
             <Link
@@ -159,7 +159,7 @@ export default function HomePage() {
               </h3>
             </div>
             <p className="text-xs font-mono text-slate-400 sm:text-right">
-              FASTAPI • SUPABASE • GEMINI 2.0 • TWILIO
+              FASTAPI • SUPABASE • COMPUTER VISION • TWILIO
             </p>
           </div>
 

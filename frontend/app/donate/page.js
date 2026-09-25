@@ -135,13 +135,13 @@ export default function DonatePage() {
       }
       setAiNotice({
         type: 'success',
-        text: `✨ Gemini Vision identified: "${data.item_name}" (~${data.estimated_quantity} ${data.unit || 'kg'}, ${data.safe_window_hours}h safe window). Form auto-filled!`
+        text: `✨ Smart Vision identified: "${data.item_name}" (~${data.estimated_quantity} ${data.unit || 'kg'}, ${data.safe_window_hours}h safe window). Form auto-filled!`
       });
     } catch (err) {
       console.warn("AI photo analysis error:", err);
       setAiNotice({
         type: 'warning',
-        text: 'AI Vision unavailable. You can continue typing food details manually.'
+        text: 'Smart Vision unavailable. You can continue typing food details manually.'
       });
     } finally {
       setAnalyzingPhoto(false);
@@ -177,13 +177,13 @@ export default function DonatePage() {
 
       setAiNotice({
         type: 'success',
-        text: `✨ Gemini extracted: "${data.item_name}", ${data.estimated_quantity} kg, good for ${data.hours_until_expiry} hrs.`
+        text: `✨ Smart Parser extracted: "${data.item_name}", ${data.estimated_quantity} kg, good for ${data.hours_until_expiry} hrs.`
       });
     } catch (err) {
       console.warn("AI text parsing error:", err);
       setAiNotice({
         type: 'warning',
-        text: 'AI Text parser unavailable. Form still works manually!'
+        text: 'Smart text parser unavailable. Form still works manually!'
       });
     } finally {
       setParsingText(false);
@@ -531,7 +531,7 @@ export default function DonatePage() {
               Post Surplus Food
             </h1>
             <p className="text-xs sm:text-sm text-canvas-muted mt-0.5 leading-relaxed">
-              Google Gemini Vision extracts safe consumption windows & automates 15 km shelter matching across Jaipur.
+              Automated Food Vision extracts safe consumption windows & automates 15 km shelter matching across Jaipur.
             </p>
           </div>
         </div>
@@ -558,7 +558,7 @@ export default function DonatePage() {
               <span>Smart Intake: Snap Photo of Surplus Food</span>
             </span>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-biteback-600 bg-biteback-50 px-2 py-0.5 rounded-full border border-biteback-200/60">
-              Gemini Vision
+              Computer Vision
             </span>
           </div>
 
@@ -600,7 +600,7 @@ export default function DonatePage() {
               {analyzingPhoto ? (
                 <>
                   <RefreshCw className="w-6 h-6 text-biteback-600 animate-spin" />
-                  <span className="text-xs font-bold text-biteback-700">Gemini Vision is analyzing food & portions…</span>
+                  <span className="text-xs font-bold text-biteback-700">Automated Vision is analyzing food & portions…</span>
                 </>
               ) : (
                 <>
@@ -609,7 +609,7 @@ export default function DonatePage() {
                   </div>
                   <div className="text-center">
                     <span className="text-xs font-extrabold text-slate-800">Upload or snap a food photo</span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Gemini automatically identifies food, estimates kg, and sets safety window</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Automated detection identifies food, estimates kg, and sets safety window</p>
                   </div>
                 </>
               )}
