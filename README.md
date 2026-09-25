@@ -173,4 +173,13 @@ One city → many: the matcher is location-agnostic (point + radius query), so o
 
 ## Team
 
-Built at a hackathon with AI-assisted development (Antigravity + Cursor + Gemini).
+## Team
+
+| Member | Role | Contributions |
+| --- | --- | --- |
+| **Nakshatra Singh Nathawat** | Team Lead & Full-Stack Integration | Project architecture & SPEC.md, GitHub + Vercel/Render deployment, frontend-backend integration, live demo orchestration, final pitch |
+| **Uday Singh Rathore** | Backend & AI Engineer | FastAPI server & SQLite schema, matching engine (expiry/distance/capacity/need scoring), safety gate (risk > 0.7 auto-reject), Gemini Vision photo intake + text parsing, expiry-risk scoring |
+| **Aalok Singh Jadoun** | Frontend Engineer | Next.js 14 donate form, driver PWA page (accept/pickup/delivered), live dashboard & impact stats UI, Mapbox geocoding + pins, Tailwind/shadcn styling |
+| **Aditya Meena** | DevOps & Notifications | Twilio SMS integration, environment variables & `.env` management, CORS + `NEXT_PUBLIC_API_URL` config, Render backend deploy + logs/debugging, seed data for demo |
+
+Built with AI-assisted development 
