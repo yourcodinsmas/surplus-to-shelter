@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import LoginModal from './LoginModal';
+import RoleSelectionModal from './RoleSelectionModal';
 
 export default function Navbar() {
   const { user, logout, openLoginModal } = useAuth();
@@ -75,6 +76,20 @@ export default function Navbar() {
                 </Link>
               </nav>
 
+              {/* Role Selection Prompt Trigger */}
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('open-role-selector'));
+                  }
+                }}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-canvas-border hover:border-biteback-400 bg-canvas-subtle hover:bg-biteback-50/60 text-xs font-bold text-slate-700 hover:text-biteback-700 transition"
+                title="Choose your role (Food Donor, Driver, or Shelter)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-biteback-600" />
+                <span>Select Role</span>
+              </button>
+
               <div className="h-5 w-px bg-canvas-border hidden sm:block" />
 
               {/* User Authentication Panel */}
@@ -123,6 +138,17 @@ export default function Navbar() {
                         <Link href="/dashboard" className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-biteback-50 hover:text-biteback-700 transition">
                           Network Telemetry
                         </Link>
+                        <button
+                          onClick={() => {
+                            if (typeof window !== 'undefined') {
+                              window.dispatchEvent(new Event('open-role-selector'));
+                            }
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-biteback-50 hover:text-biteback-700 transition flex items-center gap-1.5"
+                        >
+                          <Sparkles className="w-3 h-3 text-biteback-600" />
+                          <span>Switch / Select Role</span>
+                        </button>
                       </div>
 
                       <div className="border-t border-slate-100 pt-1">
@@ -154,6 +180,9 @@ export default function Navbar() {
 
       {/* Global Login & Registration Modal */}
       <LoginModal />
+
+      {/* Automatic Entrance Role Selector Modal */}
+      <RoleSelectionModal />
     </>
   );
 }
