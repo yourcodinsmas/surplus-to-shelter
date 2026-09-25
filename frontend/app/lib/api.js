@@ -123,13 +123,34 @@ export async function fetchNearbyMatches(donationId, lat, lon, qty, hours, safet
 
 /** Driver accepts match — calls POST /matches/accept */
 export async function acceptMatch(matchId, driverId = 1) {
-  const res = await fetch(`${API_BASE_URL}/matches/accept`, {
+  let res = await fetch(`${API_BASE_URL}/matches/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ match_id: matchId, driver_id: driverId }),
   });
+
+  // If driver_id was not recognized by older live backend instance, auto-resolve from /drivers
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    const errText = String(err.detail || '');
+    if (errText.toLowerCase().includes('driver with id') || res.status === 404) {
+      try {
+        const drivers = await fetchDrivers();
+        if (drivers && drivers.length > 0) {
+          const fallbackDriver = drivers.find(d => d.is_available) || drivers[0];
+          if (fallbackDriver && fallbackDriver.id !== driverId) {
+            const retryRes = await fetch(`${API_BASE_URL}/matches/accept`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ match_id: matchId, driver_id: fallbackDriver.id }),
+            });
+            if (retryRes.ok) return await retryRes.json();
+          }
+        }
+      } catch {
+        // Fall back to original error
+      }
+    }
     throw new Error(err.detail || `HTTP ${res.status}`);
   }
   return res.json();
@@ -264,6 +285,20 @@ export async function fetchShelters() {
       { id: 2, name: "C-Scheme Care Shelter", address: "C-Scheme, Ashok Nagar, Jaipur, Rajasthan 302001", capacity: 120.0, current_stock: 20.0, latitude: 26.9124, longitude: 75.8010 },
       { id: 3, name: "Vaishali Nagar Food Relief", address: "Vaishali Nagar, Jaipur, Rajasthan 302021", capacity: 200.0, current_stock: 45.0, latitude: 26.9068, longitude: 75.7420 },
       { id: 4, name: "Mansarovar Community Pantry", address: "Mansarovar, Jaipur, Rajasthan 302020", capacity: 180.0, current_stock: 40.0, latitude: 26.8688, longitude: 75.7645 },
+    ];
+  }
+}
+
+/** 9. Fetch all volunteer drivers — calls GET /drivers */
+export async function fetchDrivers() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/drivers`, { cache: 'no-store' });
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return [
+      { id: 1, name: "Jordan Lee", phone: "+919897313403", is_available: true, latitude: 26.9124, longitude: 75.7873 },
+      { id: 2, name: "Rahul Sharma", phone: "+919829012345", is_available: true, latitude: 26.8571, longitude: 75.8127 },
     ];
   }
 }

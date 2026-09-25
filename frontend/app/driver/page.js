@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '../lib/authContext';
-import { fetchMatches, acceptMatch, updateMatchStatus, SAMPLE_MATCHES } from '../lib/api';
+import { fetchMatches, acceptMatch, updateMatchStatus, fetchDrivers, SAMPLE_MATCHES } from '../lib/api';
 
 const RescueMap = dynamic(() => import('../components/RescueMap'), { ssr: false });
 
@@ -111,7 +111,27 @@ export default function DriverPage() {
     if (!currentJob) return;
     setLoadingAction(actionType);
     setMessage(null);
-    const driverId = user?.id || 1;
+
+    // Resolve driver ID: Check if active user corresponds to an existing Driver record
+    let driverId = user?.id || 1;
+    try {
+      const allDrivers = await fetchDrivers();
+      if (allDrivers && allDrivers.length > 0) {
+        const matched = allDrivers.find(
+          d => (user?.name && d.name?.trim().toLowerCase() === user.name?.trim().toLowerCase()) ||
+               (user?.phone && d.phone?.trim() === user.phone?.trim())
+        );
+        if (matched) {
+          driverId = matched.id;
+        } else if (!user?.id) {
+          const available = allDrivers.find(d => d.is_available);
+          driverId = available ? available.id : allDrivers[0].id;
+        }
+      }
+    } catch {
+      // Fallback to initial driverId
+    }
+
     try {
       if (actionType === 'accept') {
         await acceptMatch(currentJob.id, driverId);

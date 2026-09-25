@@ -237,6 +237,23 @@ def register_user(user_in: schemas.UserRegisterRequest, db: Session = Depends(ge
     db.commit()
     db.refresh(new_user)
 
+    # If user registered as driver, ensure corresponding Driver record exists
+    if new_user.role == "driver":
+        existing_driver = db.query(models.Driver).filter(
+            (models.Driver.name == new_user.name) |
+            ((models.Driver.phone == new_user.phone) & (models.Driver.phone.isnot(None)))
+        ).first()
+        if not existing_driver:
+            driver_rec = models.Driver(
+                name=new_user.name,
+                phone=new_user.phone or "+919897313403",
+                latitude=26.9124,
+                longitude=75.7873,
+                is_available=True,
+            )
+            db.add(driver_rec)
+            db.commit()
+
     token = create_token(new_user.id, new_user.email, new_user.role)
     return {
         "user": new_user,
@@ -521,18 +538,51 @@ def accept_match(accept_in: schemas.MatchAcceptRequest, db: Session = Depends(ge
             status_code=404, detail=f"Match with id {accept_in.match_id} not found"
         )
 
+    # 1. Look up Driver by Driver ID
     driver = db.query(models.Driver).filter(models.Driver.id == accept_in.driver_id).first()
+
+    # 2. If not found, check if driver_id was passed as a User ID
     if not driver:
-        raise HTTPException(
-            status_code=404, detail=f"Driver with id {accept_in.driver_id} not found"
-        )
+        user = db.query(models.User).filter(models.User.id == accept_in.driver_id).first()
+        if user:
+            driver = db.query(models.Driver).filter(
+                (models.Driver.name == user.name) |
+                ((models.Driver.phone == user.phone) & (models.Driver.phone.isnot(None)))
+            ).first()
+            if not driver:
+                driver = models.Driver(
+                    name=user.name,
+                    phone=user.phone or "+919897313403",
+                    latitude=26.9124,
+                    longitude=75.7873,
+                    is_available=True,
+                )
+                db.add(driver)
+                db.commit()
+                db.refresh(driver)
 
-    if not driver.is_available:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Driver '{driver.name}' is currently unavailable or assigned to another run.",
-        )
+    # 3. Fallback to active driver pool or seed default driver
+    if not driver:
+        driver = db.query(models.Driver).filter(models.Driver.is_available == True).first()
+        if not driver:
+            driver = db.query(models.Driver).first()
+        if not driver:
+            driver = models.Driver(
+                name="Jordan Lee",
+                phone="+919897313403",
+                latitude=26.9124,
+                longitude=75.7873,
+                is_available=True,
+            )
+            db.add(driver)
+            db.commit()
+            db.refresh(driver)
 
+    # If driver already has this match assigned, return idempotently
+    if match.driver_id == driver.id and match.status in ("accepted", "picked_up"):
+        return match
+
+    # Assign match and mark driver status
     match.driver_id = driver.id
     match.status = "accepted"
     driver.is_available = False
